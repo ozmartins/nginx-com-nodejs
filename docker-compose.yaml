@@ -1,0 +1,65 @@
+version: '2.1'
+
+services:
+  mysql:
+    image: mysql:5.7
+    container_name: ozmartins-mysql
+    hostname: ozmartins-mysql
+    networks:
+      - net
+    command: --innodb-use-native-aio=0
+    tty: true
+    volumes:
+      - ./database:/var/lib/mysql
+    environment:
+      - MYSQL_DATABASE=db
+      - MYSQL_ROOT_PASSWORD=root
+    restart: always
+    healthcheck:
+      test: [ "CMD", "mysqladmin", "ping", "-uroot", "-proot" ]
+      interval: 5s
+      timeout: 10s
+      retries: 3
+
+  node:
+    build:
+      dockerfile: Dockerfile.node
+      context: .
+    image: ozmartins/node
+    container_name: ozmartins-node
+    hostname: ozmartins-node
+    networks:
+      - net
+    tty: true
+    volumes:
+      - ./src:/express
+    ports:
+      - 3000:3000
+    healthcheck:
+      test: curl --fail http://localhost:3000 || exit 1
+      interval: 5s
+      timeout: 10s
+      retries: 3
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  nginx:
+    build:
+      dockerfile: Dockerfile.nginx
+      context: .
+    image: ozmartins/nginx
+    container_name: ozmartins-nginx
+    hostname: ozmartins-nginx
+    networks:
+      - net
+    tty: true
+    ports:
+      - 8080:80
+    depends_on:
+      node:
+        condition: service_healthy
+
+networks:
+  net:
+    driver: bridge
