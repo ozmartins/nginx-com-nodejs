@@ -33,8 +33,6 @@ services:
     tty: true
     volumes:
       - ./src:/express
-    ports:
-      - 3000:3000
     healthcheck:
       test: curl --fail http://localhost:3000 || exit 1
       interval: 5s
